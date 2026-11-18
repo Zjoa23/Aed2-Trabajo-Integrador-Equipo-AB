@@ -40,7 +40,7 @@ gcc -Iinclude src/*.c -o supermercado
 
 ```
 .
-├── include/   # Archivos de cabecera (.h) con los tipos de datos y prototipos
+├── include/   # Archivos de cabecera (.h) con los tipos de datos, prototipos e implementaciones
 ├── src/       # Implementación del código fuente (.c)
 ├── data/      # Archivos de datos (.dat, .txt) usados por el programa
 └── docs/      # Documentación adicional del proyecto (diagramas, apuntes, etc.)
