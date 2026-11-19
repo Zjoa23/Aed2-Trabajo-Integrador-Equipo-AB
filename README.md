@@ -6,8 +6,6 @@
 - Benjamín Navarro Ríos
 - Brian Rodríguez
 - Joaquín Gabriel Romero
-- María Milagros Samudio
-- Ilan Santino Agustín Soto
 - Yohan Esteban Urbina Ávalos
 
 ## Descripción
