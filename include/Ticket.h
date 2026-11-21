@@ -50,7 +50,6 @@ void   imprimirTicket();
 void   liberarItems();
 bool   cerrarTicket();
 
-
 bool fechaValida(tFecha pFecha) {
     bool resultado;
 
