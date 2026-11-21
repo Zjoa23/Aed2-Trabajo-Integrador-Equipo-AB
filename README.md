@@ -26,13 +26,16 @@ Sistema que simula el funcionamiento de un supermercado mediante dos modos de us
 
 ## Cómo compilar y ejecutar
 
-Pendiente — se completa cuando el código esté disponible.
+Desde la carpeta raíz del repositorio:
 
 ```
-# Ejemplo (ajustar cuando corresponda):
-gcc -Iinclude src/*.c -o supermercado
+gcc -Iinclude src/main.c -o supermercado
 ./supermercado
 ```
+
+En Windows se ejecuta con `supermercado.exe` (CMD) o `.\supermercado` (PowerShell).
+
+Los archivos `productos.dat` y `ventas.dat` se crean automáticamente en la carpeta desde donde se ejecuta el programa.
 
 ## Estructura de carpetas
 
