@@ -39,6 +39,10 @@ void mostrarAlertasStock();
 void ordenarPorCodigo();
 void cargarProductos();
 void guardarProductos();
+void limpiarBuffer();
+int leerEntero();
+float leerFloat();
+void leerTexto(tString);
 /*Declaracion de variables globales*/
 tListaProductos * lista;
 
@@ -110,13 +114,19 @@ void visualizarListaProductos(tListaProductos* pLista){
 }
 
 bool altaProducto(tProducto pProducto){
+    tListaProductos * nodo;
     bool resultado;
 
-    if(buscarProducto(pProducto.codProducto) != NULL){
-            resultado=false;
-    }else{
+    nodo = buscarProducto(pProducto.codProducto);
+
+    if (nodo == NULL) {
         insertarProducto(pProducto);
-        resultado=true;
+        resultado = true;
+    } else if (nodo->producto.activo == false) {
+        nodo->producto = pProducto;
+        resultado = true;
+    } else {
+        resultado = false;
     }
     return resultado;
 
@@ -228,4 +238,38 @@ void guardarProductos() {
         }
         fclose(archivo);
     }
+}
+
+void limpiarBuffer() {
+    int c;
+
+    c = getchar();
+    while (c != '\n' && c != EOF) {
+        c = getchar();
+    }
+}
+
+int leerEntero() {
+    int numero;
+
+    while (scanf("%d", &numero) != 1 || getchar() != '\n') {
+        limpiarBuffer();
+        printf("Valor invalido, ingrese solo numeros: ");
+    }
+    return numero;
+}
+
+float leerFloat() {
+    float numero;
+
+    while (scanf("%f", &numero) != 1 || getchar() != '\n') {
+        limpiarBuffer();
+        printf("Valor invalido, ingrese solo numeros (use punto para los decimales): ");
+    }
+    return numero;
+}
+
+void leerTexto(tString pTexto) {
+    scanf(" %49[^\n]", pTexto);
+    limpiarBuffer();
 }
