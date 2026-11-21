@@ -1,12 +1,23 @@
+/*
+ * main.c
+ * Programa principal del Sistema de Gestion para Supermercado.
+ * Tiene el menu principal, el menu del modo Cajero, el menu del modo Repositor
+ * y el informe de ventas, que recorre ventas.dat con corte de control
+ * agrupando los items por numero de ticket.
+ * Solo incluye ticket.h, porque ticket.h ya incluye a producto.h.
+ */
+
 #include "ticket.h"
 
 /*Declaracion de variables globales*/
-tRegistroVenta registro;
-FILE * archivo;
-int codTicketAnt;
-float totalTicket;
-float totalGeneral;
-int cantidadTickets;
+
+/* Variables que usa el corte de control del informe de ventas */
+tRegistroVenta registro;     /* registro que se acaba de leer de ventas.dat */
+FILE * archivo;              /* archivo ventas.dat abierto para leer */
+int codTicketAnt;            /* numero del ticket que se esta procesando (la clave del corte) */
+float totalTicket;           /* acumulador del total de un ticket */
+float totalGeneral;          /* acumulador de todas las ventas */
+int cantidadTickets;         /* contador de tickets */
 
 /*Declaracion de prototipos*/
 void menuPrincipal();
@@ -27,6 +38,8 @@ void principioCorte();
 void unTicket();
 void finCorte();
 
+/* Al empezar se prepara la lista y se cargan los productos guardados en productos.dat,
+   despues se muestra el menu principal hasta que el usuario elija salir */
 int main() {
     inicializarListaProductos();
     cargarProductos();
@@ -35,6 +48,9 @@ int main() {
 }
 
 /*implementacion de funciones*/
+
+/* Menu principal: permite elegir el modo de uso o ver el informe de ventas.
+   Al salir se guardan los productos para no perder los cambios */
 void menuPrincipal() {
     int opcion;
 
@@ -68,6 +84,8 @@ void menuPrincipal() {
     } while (opcion != 4);
 }
 
+/* Modo Cajero: al entrar se pide el numero de caja y la fecha una sola vez,
+   y se usan para todas las ventas que se hagan hasta volver al menu principal */
 void menuCajero() {
     int opcion;
     int nroCaja;
@@ -98,6 +116,8 @@ void menuCajero() {
     } while (opcion != 2);
 }
 
+/* Modo Repositor: gestion del stock. Cada opcion llama a una funcion de producto.h
+   y muestra un mensaje segun si la operacion se pudo hacer o no */
 void menuRepositor() {
     int opcion;
     int codigo;
@@ -118,6 +138,7 @@ void menuRepositor() {
 
         switch (opcion) {
             case 1:
+                /* se ordena por codigo antes de mostrar, asi la lista sale ordenada */
                 ordenarPorCodigo();
                 visualizarListaProductos(lista);
                 break;
@@ -139,6 +160,7 @@ void menuRepositor() {
                 }
                 break;
             case 4:
+                /* solo se aceptan cantidades positivas, porque es una reposicion */
                 printf("Ingrese el codigo del producto: ");
                 codigo = leerEntero();
                 printf("Ingrese la cantidad a reponer: ");
@@ -165,6 +187,10 @@ void menuRepositor() {
     } while (opcion != 7);
 }
 
+/* Registra una venta completa: abre un ticket nuevo y va pidiendo codigo
+   y cantidad hasta que el cajero ingresa 0. Despues imprime el ticket,
+   lo guarda en ventas.dat y guarda los productos para que quede
+   registrado el stock descontado */
 void nuevaVenta(int pNroCaja, tFecha pFecha) {
     int codigo;
     int cantidad;
@@ -198,6 +224,9 @@ void nuevaVenta(int pNroCaja, tFecha pFecha) {
     }
 }
 
+/* Pide por teclado los datos de un producto nuevo para darlo de alta.
+   Recibe un puntero para poder cargar los datos en la variable de menuRepositor.
+   El producto siempre empieza activo */
 void ingresarProducto(tProducto * pProducto) {
     printf("Ingrese el codigo: ");
     pProducto->codProducto = leerEntero();
@@ -212,6 +241,8 @@ void ingresarProducto(tProducto * pProducto) {
     pProducto->activo = true;
 }
 
+/* Pide un codigo, lo busca en la lista y muestra los datos del producto.
+   Si no existe o esta dado de baja muestra un mensaje */
 void mostrarProductoBuscado() {
     int codigo;
     tListaProductos * nodo;
@@ -233,6 +264,13 @@ void mostrarProductoBuscado() {
     }
 }
 
+/* ===================== CORTE DE CONTROL =====================
+   Informe de ventas a partir de ventas.dat.
+   En el archivo hay un registro por cada item vendido, y los items de un mismo
+   ticket quedan seguidos porque se guardan juntos al cerrar el ticket.
+   La clave del corte es el numero de ticket: mientras el registro leido tenga
+   el mismo numero se acumula en el total de ese ticket, y cuando cambia
+   se muestra el total y se empieza el siguiente.*/
 void informeVentas() {
     inicializacion();
     if (archivo != NULL) {
@@ -241,6 +279,8 @@ void informeVentas() {
     }
 }
 
+/* Abre el archivo, hace la primera lectura, guarda el primer numero de ticket
+   como clave anterior y pone los acumuladores generales en 0 */
 void inicializacion() {
     archivo = fopen("ventas.dat", "rb");
 
@@ -255,6 +295,9 @@ void inicializacion() {
     }
 }
 
+/* Ciclo principal del corte. El while de afuera recorre todo el archivo
+   (un ticket por vuelta) y el de adentro procesa los items mientras
+   el numero de ticket siga siendo el mismo */
 void procesoCorte() {
     while (!feof(archivo)) {
         principioCorte();
@@ -267,6 +310,7 @@ void procesoCorte() {
     }
 }
 
+/* Comienzo de un grupo: se reinicia el total del ticket y se muestra su cabecera */
 void principioCorte() {
     totalTicket = 0;
     printf("\nTicket N: %d - Fecha: %d/%d/%d - Caja: %d\n",
@@ -275,12 +319,15 @@ void principioCorte() {
            registro.ticket.nroCaja);
 }
 
+/* Procesa un item del ticket: lo suma al total, lo muestra y lee el siguiente registro */
 void unTicket() {
     totalTicket = totalTicket + registro.subtotal;
     printf("   Cod %d x %d   $%.2f\n", registro.codProducto, registro.cantidad, registro.subtotal);
     fread(&registro, sizeof(tRegistroVenta), 1, archivo);
 }
 
+/* Fin de un grupo: se muestra el total del ticket, se suma al total general
+   y la clave anterior pasa a ser el numero del proximo ticket */
 void finCorte() {
     printf("   Total del ticket: $%.2f\n", totalTicket);
     codTicketAnt = registro.ticket.nroTicket;
@@ -288,6 +335,7 @@ void finCorte() {
     cantidadTickets++;
 }
 
+/* Al terminar el archivo se muestran los totales generales y se cierra */
 void finalizacion() {
     printf("\nCantidad de tickets: %d\n", cantidadTickets);
     printf("TOTAL GENERAL: $%.2f\n", totalGeneral);
