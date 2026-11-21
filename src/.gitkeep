@@ -1,1 +1,296 @@
 
+#include "ticket.h"
+
+/*Declaracion de variables globales*/
+tRegistroVenta registro;
+FILE * archivo;
+int codTicketAnt;
+float totalTicket;
+float totalGeneral;
+int cantidadTickets;
+
+/*Declaracion de prototipos*/
+void menuPrincipal();
+void menuCajero();
+void menuRepositor();
+
+void nuevaVenta(int, tFecha);
+
+void ingresarProducto(tProducto *);
+void mostrarProductoBuscado();
+
+/*Funciones corte de control*/
+void informeVentas();
+void inicializacion();
+void procesoCorte();
+void finalizacion();
+void principioCorte();
+void unTicket();
+void finCorte();
+
+int main() {
+    inicializarListaProductos();
+    cargarProductos();
+    menuPrincipal();
+    return 0;
+}
+
+/*implementacion de funciones*/
+void menuPrincipal() {
+    int opcion;
+
+    do {
+        printf("\n===== SUPERMERCADO =====\n");
+        printf("1. Modo Cajero\n");
+        printf("2. Modo Repositor\n");
+        printf("3. Informe de ventas\n");
+        printf("4. Salir\n");
+        printf("Ingrese que opcion desea realizar: ");
+        opcion = leerEntero();
+
+        switch (opcion) {
+            case 1:
+                menuCajero();
+                break;
+            case 2:
+                menuRepositor();
+                break;
+            case 3:
+                informeVentas();
+                break;
+            case 4:
+                guardarProductos();
+                printf("Productos guardados. Saliendo del programa...\n");
+                break;
+            default:
+                printf("Opcion invalida\n");
+                break;
+        }
+    } while (opcion != 4);
+}
+
+void menuCajero() {
+    int opcion;
+    int nroCaja;
+    tFecha fecha;
+
+    printf("Ingrese el numero de caja: ");
+    nroCaja = leerEntero();
+    fecha = ingresarFecha();
+
+    do {
+        printf("\n===== MODO CAJERO (Caja %d) =====\n", nroCaja);
+        printf("1. Nueva venta\n");
+        printf("2. Volver al menu principal\n");
+        printf("Ingrese que opcion desea realizar: ");
+        opcion = leerEntero();
+
+        switch (opcion) {
+            case 1:
+                nuevaVenta(nroCaja, fecha);
+                break;
+            case 2:
+                printf("Volviendo al menu principal...\n");
+                break;
+            default:
+                printf("Opcion invalida\n");
+                break;
+        }
+    } while (opcion != 2);
+}
+
+void menuRepositor() {
+    int opcion;
+    int codigo;
+    int cantidad;
+    tProducto producto;
+
+    do {
+        printf("\n===== MODO REPOSITOR =====\n");
+        printf("1. Listar productos\n");
+        printf("2. Alta de producto\n");
+        printf("3. Baja de producto\n");
+        printf("4. Reponer stock\n");
+        printf("5. Alertas de stock minimo\n");
+        printf("6. Buscar producto por codigo\n");
+        printf("7. Volver al menu principal\n");
+        printf("Ingrese que opcion desea realizar: ");
+        opcion = leerEntero();
+
+        switch (opcion) {
+            case 1:
+                ordenarPorCodigo();
+                visualizarListaProductos(lista);
+                break;
+            case 2:
+                ingresarProducto(&producto);
+                if (altaProducto(producto)) {
+                    printf("Producto agregado\n");
+                } else {
+                    printf("Error: ya existe un producto activo con el codigo %d\n", producto.codProducto);
+                }
+                break;
+            case 3:
+                printf("Ingrese el codigo del producto a dar de baja: ");
+                codigo = leerEntero();
+                if (bajaProducto(codigo)) {
+                    printf("Producto dado de baja\n");
+                } else {
+                    printf("Error: el codigo no existe o ya estaba dado de baja\n");
+                }
+                break;
+            case 4:
+                printf("Ingrese el codigo del producto: ");
+                codigo = leerEntero();
+                printf("Ingrese la cantidad a reponer: ");
+                cantidad = leerEntero();
+                if (cantidad > 0 && actualizarStock(codigo, cantidad)) {
+                    printf("Stock actualizado\n");
+                } else {
+                    printf("Error: codigo inexistente, dado de baja o cantidad invalida\n");
+                }
+                break;
+            case 5:
+                mostrarAlertasStock();
+                break;
+            case 6:
+                mostrarProductoBuscado();
+                break;
+            case 7:
+                printf("Volviendo al menu principal...\n");
+                break;
+            default:
+                printf("Opcion invalida\n");
+                break;
+        }
+    } while (opcion != 7);
+}
+
+void nuevaVenta(int pNroCaja, tFecha pFecha) {
+    int codigo;
+    int cantidad;
+
+    iniciarTicket(pNroCaja, pFecha);
+
+    printf("Ingrese el codigo del producto (0 para terminar): ");
+    codigo = leerEntero();
+
+    while (codigo != 0) {
+        printf("Ingrese la cantidad: ");
+        cantidad = leerEntero();
+
+        if (agregarItem(codigo, cantidad)) {
+            printf("Producto agregado al ticket\n");
+        } else {
+            printf("No se pudo agregar: codigo inexistente, dado de baja, cantidad invalida o sin stock\n");
+        }
+
+        printf("Ingrese el codigo del producto (0 para terminar): ");
+        codigo = leerEntero();
+    }
+
+    imprimirTicket();
+
+    if (cerrarTicket()) {
+        guardarProductos();
+        printf("Venta registrada en ventas.dat\n");
+    } else {
+        printf("El ticket esta vacio: no se registro ninguna venta\n");
+    }
+}
+
+void ingresarProducto(tProducto * pProducto) {
+    printf("Ingrese el codigo: ");
+    pProducto->codProducto = leerEntero();
+    printf("Ingrese la descripcion: ");
+    leerTexto(pProducto->descripcion);
+    printf("Ingrese el precio: ");
+    pProducto->precio = leerFloat();
+    printf("Ingrese el stock: ");
+    pProducto->stock = leerEntero();
+    printf("Ingrese el stock minimo: ");
+    pProducto->stockMinimo = leerEntero();
+    pProducto->activo = true;
+}
+
+void mostrarProductoBuscado() {
+    int codigo;
+    tListaProductos * nodo;
+
+    printf("Ingrese el codigo a buscar: ");
+    codigo = leerEntero();
+
+    nodo = buscarProducto(codigo);
+
+    if (nodo == NULL || nodo->producto.activo == false) {
+        printf("No existe un producto activo con ese codigo\n");
+    } else {
+        printf("%d | %s | $%.2f | Stock: %d | Minimo: %d\n",
+               nodo->producto.codProducto,
+               nodo->producto.descripcion,
+               nodo->producto.precio,
+               nodo->producto.stock,
+               nodo->producto.stockMinimo);
+    }
+}
+
+void informeVentas() {
+    inicializacion();
+    if (archivo != NULL) {
+        procesoCorte();
+        finalizacion();
+    }
+}
+
+void inicializacion() {
+    archivo = fopen("ventas.dat", "rb");
+
+    if (archivo == NULL) {
+        printf("Todavia no hay ventas registradas\n");
+    } else {
+        fread(&registro, sizeof(tRegistroVenta), 1, archivo);
+        codTicketAnt = registro.ticket.nroTicket;
+        totalGeneral = 0;
+        cantidadTickets = 0;
+        printf("\n=== INFORME DE VENTAS POR TICKET ===\n");
+    }
+}
+
+void procesoCorte() {
+    while (!feof(archivo)) {
+        principioCorte();
+
+        while (!feof(archivo) && registro.ticket.nroTicket == codTicketAnt) {
+            unTicket();
+        }
+
+        finCorte();
+    }
+}
+
+void principioCorte() {
+    totalTicket = 0;
+    printf("\nTicket N: %d - Fecha: %d/%d/%d - Caja: %d\n",
+           registro.ticket.nroTicket,
+           registro.ticket.fecha.dia, registro.ticket.fecha.mes, registro.ticket.fecha.anio,
+           registro.ticket.nroCaja);
+}
+
+void unTicket() {
+    totalTicket = totalTicket + registro.subtotal;
+    printf("   Cod %d x %d   $%.2f\n", registro.codProducto, registro.cantidad, registro.subtotal);
+    fread(&registro, sizeof(tRegistroVenta), 1, archivo);
+}
+
+void finCorte() {
+    printf("   Total del ticket: $%.2f\n", totalTicket);
+    codTicketAnt = registro.ticket.nroTicket;
+    totalGeneral = totalGeneral + totalTicket;
+    cantidadTickets++;
+}
+
+void finalizacion() {
+    printf("\nCantidad de tickets: %d\n", cantidadTickets);
+    printf("TOTAL GENERAL: $%.2f\n", totalGeneral);
+    fclose(archivo);
+}
